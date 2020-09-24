@@ -1,16 +1,10 @@
-include(vcpkg_common_functions)
-
-vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
-
-if(NOT VCPKG_CRT_LINKAGE STREQUAL "dynamic")
-    message(FATAL_ERROR "DirectXTex only supports dynamic CRT linkage")
-endif()
+vcpkg_check_linkage(ONLY_STATIC_LIBRARY ONLY_DYNAMIC_CRT)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO Microsoft/DirectXTex
-    REF oct2019
-    SHA512 e9768d029033a049552a19b9f047a9dbae48982d10bc8fe0427ed7e72c89340a3b04d7ae321fe87475f209536ce37b5aa7d8150a376093787f43fe85a0955edf
+    REF aug2020
+    SHA512 f646ff51444f5f51da77e2c21998c7f9a6e014f1ffb1b814937e36e76d20c6a993808f34bda5721177d506f21f1bf36b09e94b18859c41f99043cd0eec5bc9d7
     HEAD_REF master
 )
 
@@ -30,15 +24,19 @@ else()
     message(FATAL_ERROR "Unsupported platform toolset.")
 endif()
 
-if(VCPKG_CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+if(VCPKG_TARGET_IS_UWP)
     set(SLN_NAME "Windows10_${VS_VERSION}")
 else()
-    set(SLN_NAME "Desktop_${VS_VERSION}")
+    if(TRIPLET_SYSTEM_ARCH STREQUAL "arm64")
+        set(SLN_NAME "Desktop_${VS_VERSION}_Win10")
+    else()
+        set(SLN_NAME "Desktop_${VS_VERSION}")
+    endif()
 endif()
 
 vcpkg_build_msbuild(
     PROJECT_PATH ${SOURCE_PATH}/DirectXTex_${SLN_NAME}.sln
-    PLATFORM ${BUILD_ARCH}
+    PLATFORM ${TRIPLET_SYSTEM_ARCH}
 )
 
 file(INSTALL
@@ -55,7 +53,7 @@ file(INSTALL
     ${SOURCE_PATH}/DirectXTex/Bin/${SLN_NAME}/${BUILD_ARCH}/Release/DirectXTex.pdb
     DESTINATION ${CURRENT_PACKAGES_DIR}/lib)
 
-if(NOT VCPKG_CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+if(NOT VCPKG_TARGET_IS_UWP AND NOT TRIPLET_SYSTEM_ARCH STREQUAL "arm64")
     set(TOOL_PATH ${CURRENT_PACKAGES_DIR}/tools/directxtex)
     file(MAKE_DIRECTORY ${TOOL_PATH})
     file(INSTALL
